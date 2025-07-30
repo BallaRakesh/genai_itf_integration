@@ -525,3 +525,685 @@ standard_chartered_bank_page3_combined  = """
 
 """
 
+bank_of_qatar_page0_combined = """
+    You are tasked with creating a JSON mapping of specific fields for a Letter of Credit (LC) application based on extracting each field from a list of elements. If a field is not found in the provided data, map it to ["not found"].
+
+    Also Make use this OCR for better Extraction :{ocr_data}
+    - Use this data for fields such as account numbers, dates, and names to improve efficiency and ensure extraction matches their appearance in the document.
+
+    Below are the required fields and their associated extraction elements:
+    **expiry_date:**
+    - EXPIRY:
+    - issuance of letter of credit: expiry date (dd/mm/yy)
+    - lc application 31d – date and place of expiry
+    - 31d: date of expiry
+
+    **place_of_expiry:**
+    - PLACE :
+    - issuance of letter of credit: place of expiry (additional conditions)
+    - 31d: place of expiry
+
+    **type_of_lc:**
+    - TYPE OF L/C
+    - 40a: type of lc
+
+    **Example Output:**
+    ```json
+    {{
+        "expiry_date": ["not found"],
+        "place_of_expiry": ["not found"],
+        "type_of_lc": ["not found"]
+    }}
+    ```
+
+        ### Checkbox Handling Logic
+        To accurately extract the required fields, incorporate the following logic for interpreting checked checkboxes (marked with ✓, ✗, filled, or similar indicators) in the document. Use this logic to guide the identification of relevant sections and context for field extraction, without generating a separate checkbox extraction output:
+
+        1. **Focus on Checked Checkboxes**: Only consider checkboxes that are visibly checked. Ignore unchecked or empty checkboxes completely.
+        2. **Contextual Key Derivation**: Derive contextual keys based on the most logical and relevant text near each checked checkbox, prioritizing proximity (e.g., adjacent labels, headings, or nearby text). Use these keys to identify sections like "Beneficiary," "Applicant," "LC Available with," "Tenor," or "Partial shipment."
+        3. **Binary vs. Mutually Exclusive Checkboxes**:
+        - For binary checkboxes (e.g., a single checkbox for "Partial shipment allowed"), assign the value "true" to the derived key.
+        - For mutually exclusive checkboxes (e.g., a group where one option like "90 days after Shipment Date" is checked), use the specific option text as the value.
+        4. **Section Identification**: Identify the main category or section (e.g., "LC Available with," "Tenor") under which a checked checkbox falls. Use this section as a parent context to narrow the search for field values in the OCR data.
+        5. **Context-Driven Mapping**:
+        - For **beneficiary_name** and **beneficiary_address**, if a checkbox indicates a "Beneficiary" context (e.g., "in_country_of: Beneficiary" is checked), search the OCR data for "Name:" and "Address:" within or near the "Beneficiary" section to extract the corresponding values (e.g., "Name: ATMOS INC" and "Address: QUEENS STREET, FALCON BUILDING, CALIFORNIA USA").
+        - For **applicant_name**, if a checkbox indicates an "Applicant" context (e.g., inferred from "issue_lc_same_details"), search the OCR data for "Name:" within or near the "Applicant" section to extract the corresponding value (e.g., "Name: 3M COMPANY").
+        - For **charge_account** and **margin_account**, use checkbox context (e.g., "Instructions to Issuing Bank" with a checked "debit all charges" or "debit principal drawings") to confirm the relevant section, then extract the account number or value following the specified extraction elements.
+        - For **instructions_to_issuing_bank_in_settlement_debit_principal_drawings_from_our_account**, only include instruction labels associated with checked checkboxes in the "Instructions to Issuing Bank" section.
+        6. **Cross-Referencing**: Cross-reference checkbox-derived sections (e.g., "lc_available_with: Advising_Bank") with OCR data to confirm relevance, but only use them to narrow the search scope for the required fields, not as direct values unless explicitly matched.
+        7. **Default to ["not found"]**: If no checkbox context or OCR data clearly matches a required field, or if the context is ambiguous, assign ["not found"] to that field.
+
+"""
+
+bank_of_qatar_page1_combined = """
+    You are tasked with creating a JSON mapping of specific fields for a Letter of Credit (LC) application based on extracting each field from a list of elements. If a field is not found in the provided data, map it to ["not found"].
+
+    Also Make use this OCR for better Extraction :{ocr_data}
+    - Use this data for fields such as account numbers, dates, and names to improve efficiency and ensure extraction matches their appearance in the document.
+
+    Below are the required fields and their associated extraction elements:
+    **beneficiary_name:**
+    - NAME AND ADDRESS
+    - OF THE BENEFICIARY
+    - beneficiary in favour of beneficiary's name
+    - request letter for import side: name and address of the beneficiary
+    - beneficiary company name and address
+    - lc application 59 – beneficiary
+    - 59: name and address
+
+    **beneficiary_address:**
+    - NAME AND ADDRESS
+    - OF THE BENEFICIARY
+    - beneficiary in favour of beneficiary's name
+    - request letter for import side: name and address of the beneficiary
+    - beneficiary company name and address
+    - lc application 59 – beneficiary
+    - 59: address of the beneficiary
+
+    **ccy:**
+    - CURRENCY & AMOUNT
+    - lc details: currency
+    - for back-to-back lc only: currency and amount
+    - lc application 32b – currency code, amount
+    - 32b: currency and amount
+
+    **amount:**
+    - CURRENCY & AMOUNT
+    - lc details: amount in figures
+    - for back-to-back lc only: currency and amount
+    - lc application 32b – currency code, amount
+    - 32b: currency and amount
+
+    **tolerance_plus:**
+    - PERCENTAGE PLUS
+    - lc details: positive tolerance
+    - positive amount tolerance
+    - lc application 39a – percentage credit amount
+    - 39a: percentage plus
+
+    **tolerance_minus:**
+    - PERCENTAGE MINUS
+    - lc details: negative tolerance
+    - negative amount tolerance
+    - lc application 39a – percentage credit amount
+    - 39a: percentage minus
+
+    **description_of_goods_service:**
+    - QUANTITY AND
+    - GOODS QTY:
+    - GOODS UNIT:
+    - GOODS UNIT PRICE:
+    - issuance of letter of credit: goods and services
+    - lc application 45a – description of goods and/or services
+    - 45a: quantity and description
+
+    **available_with:**
+    - WITH CREDIT
+    - request letter for import side: credit available with
+    - issuance of letter of credit: lc available with
+    - lc application 41a – credit available with
+    - 41a: credit available
+    - Sometimes, this will be the entry code. Based on the check mark, we need to extract its corresponding value.
+
+    **available_by:**
+    - CREDIT AVAILABLE
+    - request letter for import side: credit available by
+    - issuance of letter of credit: lc available by
+    - lc application 41d – available with ... by ...
+    - 41a: with credit
+
+    **issuing_bank:**
+    - ISSUING BANK:
+    - for back-to-back lc only: issuing bank
+    - 42a: issuing bank
+
+    **partial_shipment:**
+    - PARTIAL SHIPMENTS
+    - issuance of letter of credit: partial shipment
+    - lc application 43p – partial shipments
+    - 43p: partial shipments
+
+    **transshipment:**
+    - TRANSHIPMENT
+    - issuance of letter of credit: transshipment
+    - lc application 43t – transshipment
+    - 43t: transshipment
+
+    **place_of_receipt:**
+    - RECEIPT
+    - shipment details: place of receipt
+    - place of receipt
+    - port of discharge, can not be the 'place_of_receipt'
+
+    **port_of_loading:**
+    - SHIPMENT FROM
+    - shipment details: port of loading
+    - lc application 44e – port of loading/airport of departure
+    - 44a: shipment from
+
+    **port_of_discharge:**
+    - SHIPMENT TO
+    - shipment details: port of discharge
+    - lc application 44f – port of discharge/airport
+    - 44b: shipment to
+
+    **place_of_destination:**
+    - DESTINATION
+    - shipment details: final place of delivery destination
+    - shipment details: place of destination
+    - final destination
+
+    **latest_shipment_date:**
+    - LATEST DATE OF
+    - shipment details: latest shipment date
+    - shipment details: not later than
+    - lc application 44c – latest date of shipment
+    - 44c: latest date
+
+    **currency_and_amount_figures_and_words:**
+    - AMOUNT IN WORDS:
+    - currency and amount: figures and words
+    - 32b: amount in words
+
+    **additional_amounts_covered:**
+    - ADDITIONAL_AMOUNTS
+    - issuance of letter of credit: additional amount (additional conditions)
+    - 39c: additional amounts
+
+    **maximum_credit_amount_amount_plus_tolerance:**
+    - MAXIMUM AMOUNT ( AMOUNT PLUS TOLERANCE )
+    - 39b: maximum amount with tolerance
+
+    **draft:**
+    - DRAFT
+    - lc application 42p – drafts at
+    - 42c: draft
+
+    **Example Output:**
+    ```json
+    {{
+        "beneficiary_name": ["not found"],
+        "beneficiary_address": ["not found"],
+        "ccy": ["not found"],
+        "amount": ["not found"],
+        "tolerance_plus": ["not found"],
+        "tolerance_minus": ["not found"],
+        "description_of_goods_service": ["not found"],
+        "available_with": ["not found"],
+        "available_by": ["not found"],
+        "issuing_bank": ["not found"],
+        "partial_shipment": ["not found"],
+        "transshipment": ["not found"],
+        "place_of_receipt": ["not found"],
+        "port_of_loading": ["not found"],
+        "port_of_discharge": ["not found"],
+        "place_of_destination": ["not found"],
+        "latest_shipment_date": ["not found"],
+        "currency_and_amount_figures_and_words": ["not found"],
+        "additional_amounts_covered": ["not found"],
+        "maximum_credit_amount_amount_plus_tolerance": ["not found"],
+        "draft": ["not found"]
+    }}
+    ```
+
+        ### Checkbox Handling Logic
+        To accurately extract the required fields, incorporate the following logic for interpreting checked checkboxes (marked with ✓, ✗, filled, or similar indicators) in the document. Use this logic to guide the identification of relevant sections and context for field extraction, without generating a separate checkbox extraction output:
+
+        1. **Focus on Checked Checkboxes**: Only consider checkboxes that are visibly checked. Ignore unchecked or empty checkboxes completely.
+        2. **Contextual Key Derivation**: Derive contextual keys based on the most logical and relevant text near each checked checkbox, prioritizing proximity (e.g., adjacent labels, headings, or nearby text). Use these keys to identify sections like "Beneficiary," "Applicant," "LC Available with," "Tenor," or "Partial shipment."
+        3. **Binary vs. Mutually Exclusive Checkboxes**:
+        - For binary checkboxes (e.g., a single checkbox for "Partial shipment allowed"), assign the value "true" to the derived key.
+        - For mutually exclusive checkboxes (e.g., a group where one option like "90 days after Shipment Date" is checked), use the specific option text as the value.
+        4. **Section Identification**: Identify the main category or section (e.g., "LC Available with," "Tenor") under which a checked checkbox falls. Use this section as a parent context to narrow the search for field values in the OCR data.
+        5. **Context-Driven Mapping**:
+        - For **beneficiary_name** and **beneficiary_address**, if a checkbox indicates a "Beneficiary" context (e.g., "in_country_of: Beneficiary" is checked), search the OCR data for "Name:" and "Address:" within or near the "Beneficiary" section to extract the corresponding values (e.g., "Name: ATMOS INC" and "Address: QUEENS STREET, FALCON BUILDING, CALIFORNIA USA").
+        - For **applicant_name**, if a checkbox indicates an "Applicant" context (e.g., inferred from "issue_lc_same_details"), search the OCR data for "Name:" within or near the "Applicant" section to extract the corresponding value (e.g., "Name: 3M COMPANY").
+        - For **charge_account** and **margin_account**, use checkbox context (e.g., "Instructions to Issuing Bank" with a checked "debit all charges" or "debit principal drawings") to confirm the relevant section, then extract the account number or value following the specified extraction elements.
+        - For **instructions_to_issuing_bank_in_settlement_debit_principal_drawings_from_our_account**, only include instruction labels associated with checked checkboxes in the "Instructions to Issuing Bank" section.
+        6. **Cross-Referencing**: Cross-reference checkbox-derived sections (e.g., "lc_available_with: Advising_Bank") with OCR data to confirm relevance, but only use them to narrow the search scope for the required fields, not as direct values unless explicitly matched.
+        7. **Default to ["not found"]**: If no checkbox context or OCR data clearly matches a required field, or if the context is ambiguous, assign ["not found"] to that field.
+"""
+
+bank_of_qatar_page2_combined = """
+    You are tasked with creating a JSON mapping of specific fields for a Letter of Credit (LC) application based on extracting each field from a list of elements. If a field is not found in the provided data, map it to ["not found"].
+
+    Also Make use this OCR for better Extraction :{ocr_data}
+    - Use this data for fields such as account numbers, dates, and names to improve efficiency and ensure extraction matches their appearance in the document.
+
+    Below are the required fields and their associated extraction elements:
+    **documents_required:**
+    - DOCUMENTS
+    - all documents: documents required
+    - lc application 46a – documents required
+    - 46a: documents
+
+    **type_of_goods:**
+    - GOODS
+    - type of goods
+    - for purchase of
+
+    **Country_of_Origin:**
+    - COUNTRY OF ORIGIN
+    - certificate of origin
+    - country of origin
+
+    **charges_if_any_are_for_account_of:**
+    - SPECIFY IF ANY CHARGES ARE TO
+    - 71b: specify if any charges are for account of
+
+    **additional_conditions:**
+    - ADDITIONAL CONDITIONS
+    - issuance of letter of credit: additional conditions
+    - lc application 47a – additional conditions
+    - 47a: additional conditions
+
+    **Example Output:**
+    ```json
+    {{
+        "documents_required": ["not found"],
+        "type_of_goods": ["not found"],
+        "Country_of_Origin": ["not found"],
+        "charges_if_any_are_for_account_of": ["not found"],
+        "additional_conditions": ["not found"]
+    }}
+    ```
+
+        ### Checkbox Handling Logic
+        To accurately extract the required fields, incorporate the following logic for interpreting checked checkboxes (marked with ✓, ✗, filled, or similar indicators) in the document. Use this logic to guide the identification of relevant sections and context for field extraction, without generating a separate checkbox extraction output:
+
+        1. **Focus on Checked Checkboxes**: Only consider checkboxes that are visibly checked. Ignore unchecked or empty checkboxes completely.
+        2. **Contextual Key Derivation**: Derive contextual keys based on the most logical and relevant text near each checked checkbox, prioritizing proximity (e.g., adjacent labels, headings, or nearby text). Use these keys to identify sections like "Beneficiary," "Applicant," "LC Available with," "Tenor," or "Partial shipment."
+        3. **Binary vs. Mutually Exclusive Checkboxes**:
+        - For binary checkboxes (e.g., a single checkbox for "Partial shipment allowed"), assign the value "true" to the derived key.
+        - For mutually exclusive checkboxes (e.g., a group where one option like "90 days after Shipment Date" is checked), use the specific option text as the value.
+        4. **Section Identification**: Identify the main category or section (e.g., "LC Available with," "Tenor") under which a checked checkbox falls. Use this section as a parent context to narrow the search for field values in the OCR data.
+        5. **Context-Driven Mapping**:
+        - For **beneficiary_name** and **beneficiary_address**, if a checkbox indicates a "Beneficiary" context (e.g., "in_country_of: Beneficiary" is checked), search the OCR data for "Name:" and "Address:" within or near the "Beneficiary" section to extract the corresponding values (e.g., "Name: ATMOS INC" and "Address: QUEENS STREET, FALCON BUILDING, CALIFORNIA USA").
+        - For **applicant_name**, if a checkbox indicates an "Applicant" context (e.g., inferred from "issue_lc_same_details"), search the OCR data for "Name:" within or near the "Applicant" section to extract the corresponding value (e.g., "Name: 3M COMPANY").
+        - For **charge_account** and **margin_account**, use checkbox context (e.g., "Instructions to Issuing Bank" with a checked "debit all charges" or "debit principal drawings") to confirm the relevant section, then extract the account number or value following the specified extraction elements.
+        - For **instructions_to_issuing_bank_in_settlement_debit_principal_drawings_from_our_account**, only include instruction labels associated with checked checkboxes in the "Instructions to Issuing Bank" section.
+        6. **Cross-Referencing**: Cross-reference checkbox-derived sections (e.g., "lc_available_with: Advising_Bank") with OCR data to confirm relevance, but only use them to narrow the search scope for the required fields, not as direct values unless explicitly matched.
+        7. **Default to ["not found"]**: If no checkbox context or OCR data clearly matches a required field, or if the context is ambiguous, assign ["not found"] to that field.
+    """
+
+
+bank_of_qatar_page3_combined = """
+    You are tasked with creating a JSON mapping of specific fields for a Letter of Credit (LC) application based on extracting each field from a list of elements. If a field is not found in the provided data, map it to ["not found"].
+
+    Also Make use this OCR for better Extraction :{ocr_data}
+    - Use this data for fields such as account numbers, dates, and names to improve efficiency and ensure extraction matches their appearance in the document.
+
+    Below are the required fields and their associated extraction elements:
+    **advising_bank:**
+    - Bank
+    - request letter for import side: preferred advising bank
+    - issuance of letter of credit: advising bank additional conditions
+    - lc application: receiver
+    - advising bank
+    - issuing bank can be the advising bank
+
+    **confirmation_required:**
+    - CONFIRMATION INSTRUCTIONS
+    - issuance of letter of credit: confirmation
+    - lc application 49 – confirmation instructions
+    - 49: confirmation instructions
+
+    **documents_to_be_presented_within:**
+    - PERIOD OF PRESENTATION
+    - issuance of letter of credit: present documents within
+    - lc application 48 – period of presentation
+    - 48: period of presentation
+
+    **instructions_to_the_paying_accepting_negotiating_bank:**
+    - INSTRUCTIONS TO THE
+    - 78: instructions to the issuing bank
+
+    **sender_to_receiver_information:**
+    - SENDER TO RECEIVER
+    - 72: sender to receiver information
+
+    **confirming_bank:**
+    - Bank
+    - confirming bank
+
+    **advise_through_bank:**
+    - Through Bank
+    - issuance of letter of credit: advise through bank
+    - lc application 57a – advise through bank (BIC/IFSC)
+    - advise through bank
+
+    **reimbursing_bank:**
+    - Bank
+    - reimbursing bank
+
+    **Example Output:**
+    ```json
+    {{
+        "advising_bank": ["not found"],
+        "confirmation_required": ["not found"],
+        "documents_to_be_presented_within": ["not found"],
+        "instructions_to_the_paying_accepting_negotiating_bank": ["not found"],
+        "sender_to_receiver_information": ["not found"],
+        "confirming_bank": ["not found"],
+        "advise_through_bank": ["not found"],
+        "reimbursing_bank": ["not found"]
+    }}
+    ```
+
+        ### Checkbox Handling Logic
+        To accurately extract the required fields, incorporate the following logic for interpreting checked checkboxes (marked with ✓, ✗, filled, or similar indicators) in the document. Use this logic to guide the identification of relevant sections and context for field extraction, without generating a separate checkbox extraction output:
+
+        1. **Focus on Checked Checkboxes**: Only consider checkboxes that are visibly checked. Ignore unchecked or empty checkboxes completely.
+        2. **Contextual Key Derivation**: Derive contextual keys based on the most logical and relevant text near each checked checkbox, prioritizing proximity (e.g., adjacent labels, headings, or nearby text). Use these keys to identify sections like "Beneficiary," "Applicant," "LC Available with," "Tenor," or "Partial shipment."
+        3. **Binary vs. Mutually Exclusive Checkboxes**:
+        - For binary checkboxes (e.g., a single checkbox for "Partial shipment allowed"), assign the value "true" to the derived key.
+        - For mutually exclusive checkboxes (e.g., a group where one option like "90 days after Shipment Date" is checked), use the specific option text as the value.
+        4. **Section Identification**: Identify the main category or section (e.g., "LC Available with," "Tenor") under which a checked checkbox falls. Use this section as a parent context to narrow the search for field values in the OCR data.
+        5. **Context-Driven Mapping**:
+        - For **beneficiary_name** and **beneficiary_address**, if a checkbox indicates a "Beneficiary" context (e.g., "in_country_of: Beneficiary" is checked), search the OCR data for "Name:" and "Address:" within or near the "Beneficiary" section to extract the corresponding values (e.g., "Name: ATMOS INC" and "Address: QUEENS STREET, FALCON BUILDING, CALIFORNIA USA").
+        - For **applicant_name**, if a checkbox indicates an "Applicant" context (e.g., inferred from "issue_lc_same_details"), search the OCR data for "Name:" within or near the "Applicant" section to extract the corresponding value (e.g., "Name: 3M COMPANY").
+        - For **charge_account** and **margin_account**, use checkbox context (e.g., "Instructions to Issuing Bank" with a checked "debit all charges" or "debit principal drawings") to confirm the relevant section, then extract the account number or value following the specified extraction elements.
+        - For **instructions_to_issuing_bank_in_settlement_debit_principal_drawings_from_our_account**, only include instruction labels associated with checked checkboxes in the "Instructions to Issuing Bank" section.
+        6. **Cross-Referencing**: Cross-reference checkbox-derived sections (e.g., "lc_available_with: Advising_Bank") with OCR data to confirm relevance, but only use them to narrow the search scope for the required fields, not as direct values unless explicitly matched.
+    7. **Default to ["not found"]**: If no checkbox context or OCR data clearly matches a required field, or if the context is ambiguous, assign ["not found"] to that field.
+"""
+
+
+bank_of_baroda_page0_combined = """
+    You are tasked with creating a JSON mapping of specific fields for a Letter of Credit (LC) application based on extracting each field from a list of elements. If a field is not found in the provided data, map it to ["not found"].
+
+    Also Make use this OCR for better Extraction :{ocr_data}
+    - Use this data for fields such as account numbers, dates, and names to improve efficiency and ensure extraction matches their appearance in the document.
+
+    Below are the required fields and their associated extraction elements:
+    **beneficiary_name:**
+    - Name & Address of the Beneficiary
+    - beneficiary in favour of beneficiary's name
+    - request letter for import side: name and address of the beneficiary
+    - beneficiary company name and address
+    - lc application 59 – beneficiary
+    - 59: name and address
+
+    **beneficiary_address:**
+    - Name & Address of the Beneficiary
+    - beneficiary in favour of beneficiary's name
+    - request letter for import side: name and address of the beneficiary
+    - beneficiary company name and address
+    - lc application 59 – beneficiary
+    - 59: address of the beneficiary
+
+    **applicant_name:**
+    - Name of the Applicant
+    - applicant for account of applicant's name
+    - request letter for import side: name of the applicant
+    - applicant company name and address
+    - lc application 50 – applicant
+    - 50: name and address
+
+    **applicant_telephone_no:**
+    - tel no
+    - applicant telephone
+
+    **advising_bank:**
+    - Preferred Advising Bank
+    - request letter for import side: preferred advising bank
+    - issuance of letter of credit: advising bank additional conditions
+    - lc application: receiver
+    - advising bank
+    - issuing bank can be the advising bank
+
+    **available_with:**
+    - Credit Available With
+    - request letter for import side: credit available with
+    - issuance of letter of credit: lc available with
+    - lc application 41a – credit available with
+    - 41a: credit available
+    - Sometimes, this will be the entry code. Based on the check mark, we need to extract its corresponding value.
+
+    **available_by:**
+    - Credit Available By
+    - request letter for import side: credit available by
+    - issuance of letter of credit: lc available by
+    - lc application 41d – available with ... by ...
+    - 41a: with credit
+
+    **place_of_receipt:**
+    - Place of receipt
+    - shipment details: place of receipt
+    - place of receipt
+    - port of discharge, can not be the 'place_of_receipt'
+
+    **place_of_destination:**
+    - Final place of delivery/destination
+    - shipment details: final place of delivery destination
+    - shipment details: place of destination
+    - final destination
+
+    **port_of_loading:**
+    - shipment details: port of loading
+    - lc application 44e – port of loading/airport of departure
+    - 44a: shipment from
+
+    **port_of_discharge:**
+    - Port of discharge
+    - shipment details: port of discharge
+    - lc application 44f – port of discharge/airport
+    - 44b: shipment to
+
+    **latest_shipment_date:**
+    - Latest shipment date
+    - shipment details: latest shipment date
+    - shipment details: not later than
+    - lc application 44c – latest date of shipment
+    - 44c: latest date
+
+    **ccy:**
+    - CCY & Amount (In figures)
+    - lc details: currency
+    - for back-to-back lc only: currency and amount
+    - lc application 32b – currency code, amount
+    - 32b: currency and amount
+
+    **amount:**
+    - CCY & Amount (In figures)
+    - lc details: amount in figures
+    - for back-to-back lc only: currency and amount
+    - lc application 32b – currency code, amount
+    - 32b: currency and amount
+
+    **tolerance_plus:**
+    - Tolerance
+    - lc details: positive tolerance
+    - positive amount tolerance
+    - lc application 39a – percentage credit amount
+    - 39a: percentage plus
+
+    **tolerance_minus:**
+    - Tolerance
+    - lc details: negative tolerance
+    - negative amount tolerance
+    - lc application 39a – percentage credit amount
+    - 39a: percentage minus
+
+    **expiry_date:**
+    - Expiry Date
+    - issuance of letter of credit: expiry date (dd/mm/yy)
+    - lc application 31d – date and place of expiry
+    - 31d: date of expiry
+
+    **confirmation_required:**
+    - Confirmation Required
+    - issuance of letter of credit: confirmation
+    - lc application 49 – confirmation instructions
+    - 49: confirmation instructions
+
+    **partial_shipment:**
+    - Partial Shipment
+    - issuance of letter of credit: partial shipment
+    - lc application 43p – partial shipments
+    - 43p: partial shipments
+
+    **transshipment:**
+    - transshipment
+    - issuance of letter of credit: transshipment
+    - lc application 43t – transshipment
+    - 43t: transshipment
+
+    **documents_to_be_presented_within:**
+    - Documents to be presented within
+    - issuance of letter of credit: present documents within
+    - lc application 48 – period of presentation
+    - 48: period of presentation
+
+    **description_of_goods_service:**
+    - Description of Goods/Service
+    - issuance of letter of credit: goods and services
+    - lc application 45a – description of goods and/or services
+    - 45a: quantity and description
+
+    **confirmation_charges_if_any_are_for_account_of:**
+    - LC Confirmation Charges (if any) are for account of
+    - other charges: lc confirmation charges, if any, are for account of
+
+    **signed_invoices_no_of_documents:**
+    - Signed commercial invoice
+    - signed invoices: number of documents
+
+    **packing_list_no_of_documents:**
+    - Packing List
+    - packing list: number of documents
+
+    **certificate_of_origin_no_of_documents:**
+    - Certificate of origin
+    - certificate of origin: number of documents
+
+    **type_of_lc:**
+    - request you to open an Irrevocable
+    - 40a: type of lc
+
+    **charges_if_any_are_for_account_of:**
+    - All banking charges outside of Issuing Bank are for account of
+    - 71b: specify if any charges are for account of
+
+    **documents_required:**
+    - Documents Required
+    - all documents: documents required
+    - lc application 46a – documents required
+    - 46a: documents
+
+    **Example Output:**
+    ```json
+    {{
+        "beneficiary_name": ["not found"],
+        "beneficiary_address": ["not found"],
+        "applicant_name": ["not found"],
+        "applicant_telephone_no": ["not found"],
+        "advising_bank": ["not found"],
+        "available_with": ["not found"],
+        "available_by": ["not found"],
+        "place_of_receipt": ["not found"],
+        "place_of_destination": ["not found"],
+        "port_of_loading": ["not found"],
+        "port_of_discharge": ["not found"],
+        "latest_shipment_date": ["not found"],
+        "ccy": ["not found"],
+        "amount": ["not found"],
+        "tolerance_plus": ["not found"],
+        "tolerance_minus": ["not found"],
+        "expiry_date": ["not found"],
+        "confirmation_required": ["not found"],
+        "partial_shipment": ["not found"],
+        "transshipment": ["not found"],
+        "documents_to_be_presented_within": ["not found"],
+        "description_of_goods_service": ["not found"],
+        "confirmation_charges_if_any_are_for_account_of": ["not found"],
+        "signed_invoices_no_of_documents": ["not found"],
+        "packing_list_no_of_documents": ["not found"],
+        "certificate_of_origin_no_of_documents": ["not found"],
+        "type_of_lc": ["not found"],
+        "charges_if_any_are_for_account_of": ["not found"],
+        "documents_required": ["not found"]
+    }}
+    ```
+
+        ### Checkbox Handling Logic
+        To accurately extract the required fields, incorporate the following logic for interpreting checked checkboxes (marked with ✓, ✗, filled, or similar indicators) in the document. Use this logic to guide the identification of relevant sections and context for field extraction, without generating a separate checkbox extraction output:
+
+        1. **Focus on Checked Checkboxes**: Only consider checkboxes that are visibly checked. Ignore unchecked or empty checkboxes completely.
+        2. **Contextual Key Derivation**: Derive contextual keys based on the most logical and relevant text near each checked checkbox, prioritizing proximity (e.g., adjacent labels, headings, or nearby text). Use these keys to identify sections like "Beneficiary," "Applicant," "LC Available with," "Tenor," or "Partial shipment."
+        3. **Binary vs. Mutually Exclusive Checkboxes**:
+        - For binary checkboxes (e.g., a single checkbox for "Partial shipment allowed"), assign the value "true" to the derived key.
+        - For mutually exclusive checkboxes (e.g., a group where one option like "90 days after Shipment Date" is checked), use the specific option text as the value.
+        4. **Section Identification**: Identify the main category or section (e.g., "LC Available with," "Tenor") under which a checked checkbox falls. Use this section as a parent context to narrow the search for field values in the OCR data.
+        5. **Context-Driven Mapping**:
+        - For **beneficiary_name** and **beneficiary_address**, if a checkbox indicates a "Beneficiary" context (e.g., "in_country_of: Beneficiary" is checked), search the OCR data for "Name:" and "Address:" within or near the "Beneficiary" section to extract the corresponding values (e.g., "Name: ATMOS INC" and "Address: QUEENS STREET, FALCON BUILDING, CALIFORNIA USA").
+        - For **applicant_name**, if a checkbox indicates an "Applicant" context (e.g., inferred from "issue_lc_same_details"), search the OCR data for "Name:" within or near the "Applicant" section to extract the corresponding value (e.g., "Name: 3M COMPANY").
+        - For **charge_account** and **margin_account**, use checkbox context (e.g., "Instructions to Issuing Bank" with a checked "debit all charges" or "debit principal drawings") to confirm the relevant section, then extract the account number or value following the specified extraction elements.
+        - For **instructions_to_issuing_bank_in_settlement_debit_principal_drawings_from_our_account**, only include instruction labels associated with checked checkboxes in the "Instructions to Issuing Bank" section.
+        6. **Cross-Referencing**: Cross-reference checkbox-derived sections (e.g., "lc_available_with: Advising_Bank") with OCR data to confirm relevance, but only use them to narrow the search scope for the required fields, not as direct values unless explicitly matched.
+        7. **Default to ["not found"]**: If no checkbox context or OCR data clearly matches a required field, or if the context is ambiguous, assign ["not found"] to that field.
+"""
+
+bank_of_baroda_page1_combined = """
+    You are tasked with creating a JSON mapping of specific fields for a Letter of Credit (LC) application based on extracting each field from a list of elements. If a field is not found in the provided data, map it to ["not found"].
+
+    Also Make use this OCR for better Extraction :{ocr_data}
+    - Use this data for fields such as account numbers, dates, and names to improve efficiency and ensure extraction matches their appearance in the document.
+
+    Below are the required fields and their associated extraction elements:
+    **for_back_to_back_lc_only_currency_and_amount:**
+    - Forward Contract No & Amount
+    - for back-to-back lc only: currency and amount
+
+    **additional_conditions:**
+    - Tenor/Period
+    - Rate of Interest
+    - Other Charges
+    - issuance of letter of credit: additional conditions
+    - lc application 47a – additional conditions
+    - 47a: additional conditions
+
+    **documents_required:**
+    - DOCUMENTS ENCLOSED
+    - DOCUMENTS RECEIVED
+    - all documents: documents required
+    - lc application 46a – documents required
+    - 46a: documents
+
+    **Example Output:**
+    ```json
+    {{
+        "for_back_to_back_lc_only_currency_and_amount": ["not found"],
+        "additional_conditions": ["not found"],
+        "documents_required": ["not found"]
+    }}
+    ```
+
+        ### Checkbox Handling Logic
+        To accurately extract the required fields, incorporate the following logic for interpreting checked checkboxes (marked with ✓, ✗, filled, or similar indicators) in the document. Use this logic to guide the identification of relevant sections and context for field extraction, without generating a separate checkbox extraction output:
+
+        1. **Focus on Checked Checkboxes**: Only consider checkboxes that are visibly checked. Ignore unchecked or empty checkboxes completely.
+        2. **Contextual Key Derivation**: Derive contextual keys based on the most logical and relevant text near each checked checkbox, prioritizing proximity (e.g., adjacent labels, headings, or nearby text). Use these keys to identify sections like "Beneficiary," "Applicant," "LC Available with," "Tenor," or "Partial shipment."
+        3. **Binary vs. Mutually Exclusive Checkboxes**:
+        - For binary checkboxes (e.g., a single checkbox for "Partial shipment allowed"), assign the value "true" to the derived key.
+        - For mutually exclusive checkboxes (e.g., a group where one option like "90 days after Shipment Date" is checked), use the specific option text as the value.
+        4. **Section Identification**: Identify the main category or section (e.g., "LC Available with," "Tenor") under which a checked checkbox falls. Use this section as a parent context to narrow the search for field values in the OCR data.
+        5. **Context-Driven Mapping**:
+        - For **beneficiary_name** and **beneficiary_address**, if a checkbox indicates a "Beneficiary" context (e.g., "in_country_of: Beneficiary" is checked), search the OCR data for "Name:" and "Address:" within or near the "Beneficiary" section to extract the corresponding values (e.g., "Name: ATMOS INC" and "Address: QUEENS STREET, FALCON BUILDING, CALIFORNIA USA").
+        - For **applicant_name**, if a checkbox indicates an "Applicant" context (e.g., inferred from "issue_lc_same_details"), search the OCR data for "Name:" within or near the "Applicant" section to extract the corresponding value (e.g., "Name: 3M COMPANY").
+        - For **charge_account** and **margin_account**, use checkbox context (e.g., "Instructions to Issuing Bank" with a checked "debit all charges" or "debit principal drawings") to confirm the relevant section, then extract the account number or value following the specified extraction elements.
+        - For **instructions_to_issuing_bank_in_settlement_debit_principal_drawings_from_our_account**, only include instruction labels associated with checked checkboxes in the "Instructions to Issuing Bank" section.
+        6. **Cross-Referencing**: Cross-reference checkbox-derived sections (e.g., "lc_available_with: Advising_Bank") with OCR data to confirm relevance, but only use them to narrow the search scope for the required fields, not as direct values unless explicitly matched.
+        7. **Default to ["not found"]**: If no checkbox context or OCR data clearly matches a required field, or if the context is ambiguous, assign ["not found"] to that field.
+"""
+
+
+
+promt_template = {
+    'DocProcessing-0000018376-process 2_01.png': bank_of_baroda_page0_combined,
+    'DocProcessing-0000018376-process 2_02.png': bank_of_baroda_page1_combined,
+    'test_case_no_1_01.png': bank_of_qatar_page0_combined,
+    'test_case_no_1_02.png': bank_of_qatar_page1_combined,
+    'test_case_no_1_03.png': bank_of_qatar_page2_combined,
+    'test_case_no_1_04.png': bank_of_qatar_page3_combined
+}
